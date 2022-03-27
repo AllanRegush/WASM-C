@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Random Quote Generator</title>
+</head>
+<body>
+<p id="message"></p>
+<button id="btn">Click Me!</button>
+</body>
+	<script>
+		const message = document.getElementById("message");
+		const btn = document.getElementById("btn");
+		
+		async function init() {
+			const mainWasm = fetch("main.wasm");
+
+
+			const mainObject = await WebAssembly.instantiateStreaming(mainWasm, {
+				env: {
+					printInt: console.log,
+					__debugbreak: () => { debugger; }
+				},
+			}); 
+
+			console.log(mainObject);
+			const mainExports = mainObject.instance.exports;
+			const mainMem = mainExports.memory;
+			mainExports.Test();
+
+		   function getString(pointer) {
+				const values = [];
+				const buffer = new Uint8Array(mainMem.buffer);
+				for (let i = 0;; ++i) {
+					const char = buffer[pointer];
+					if (!char) break;
+
+					values.push(char);
+					++pointer;
+				}
+				return String.fromCharCode(...values);
+			} 
+
+			btn.addEventListener('click', () => {
+				message.innerText = getString(mainExports.Message());
+			});
+
+		}
+
+		init();
+	</script>
+</html>
